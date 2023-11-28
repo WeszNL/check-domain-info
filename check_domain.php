@@ -63,30 +63,33 @@
 
 <?php
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
-$highlightOrg = isset($_GET['highlight']) ? $_GET['highlight'] : "";
+ini_set("display_errors", 1);
+$highlightOrg = isset($_GET["highlight"]) ? $_GET["highlight"] : "";
 $domainPattern = '/^(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/';
-
 
 //ini_set('display_errors', 1);
 //ini_set('display_startup_errors', 1);
 //error_reporting(E_ALL);
 
-require_once 'vendor/autoload.php';
+require_once "vendor/autoload.php";
 use GeoIp2\Database\Reader;
 
-
 // Highlight customer
-function highlightText($text, $highlight) {
+function highlightText($text, $highlight)
+{
     if ($highlight) {
-        return str_ireplace($highlight, "<span style='background-color: yellow;'>$highlight</span>", $text);
+        return str_ireplace(
+            $highlight,
+            "<span style='background-color: yellow;'>$highlight</span>",
+            $text
+        );
     }
     return $text;
 }
 
-
-function getCountryInfo($ip) {
-    $reader = new Reader('/usr/share/GeoIP/GeoLite2-City.mmdb'); // Use correct path
+function getCountryInfo($ip)
+{
+    $reader = new Reader("/usr/share/GeoIP/GeoLite2-City.mmdb"); // Use correct path
     try {
         $record = $reader->city($ip);
         $countryName = $record->country->name;
@@ -94,121 +97,155 @@ function getCountryInfo($ip) {
         $cityName = $record->city->name;
 
         return [
-            'countryName' => $countryName,
-            'countryCode' => $countryCode,
-            'cityName' => $cityName
+            "countryName" => $countryName,
+            "countryCode" => $countryCode,
+            "cityName" => $cityName,
         ];
     } catch (Exception $e) {
         return [
-            'countryName' => 'Country information not available',
-            'countryCode' => 'N/A',
-            'cityName' => 'City information not available'
+            "countryName" => "Country information not available",
+            "countryCode" => "N/A",
+            "cityName" => "City information not available",
         ];
     }
 }
 
-
-function getIPv6($domain) {
+function getIPv6($domain)
+{
     $dnsRecords = dns_get_record($domain, DNS_AAAA);
-    $ipv6Addresses = array_column($dnsRecords, 'ipv6');
+    $ipv6Addresses = array_column($dnsRecords, "ipv6");
     return empty($ipv6Addresses) ? null : reset($ipv6Addresses);
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $domain = $_POST["domain"];
-    $domain = preg_replace('/^www\./', '', $domain); // Remove leading "www" if present
-
+    $domain = preg_replace("/^www\./", "", $domain); // Remove leading "www" if present
 
     // Check if the domain is a subdomain
     if (!preg_match($domainPattern, $domain)) {
-//    if (substr_count($domain, '.') < 1 || substr_count($domain, '.') > 2) {
+        //    if (substr_count($domain, '.') < 1 || substr_count($domain, '.') > 2) {
         echo "<p>Error: please use domain.com and no subdomain</p>";
     } else {
-        echo "<h2>Results for: $domain</h2>"; 
-       // Resolve domain name to IP
+        echo "<h2>Results for: $domain</h2>";
+        // Resolve domain name to IP
         $ipv4 = gethostbyname($domain);
         $ipv6 = getIPv6($domain);
 
         $countryInfoIPv4 = getCountryInfo($ipv4);
-        $countryNameIPv4 = $countryInfoIPv4['countryName'];
-        echo "<p>Resolved IPv4 Address: " . highlightText($ipv4, $highlightOrg) . " (" . $countryNameIPv4 . ")</p>";
+        $countryNameIPv4 = $countryInfoIPv4["countryName"];
+        echo "<p>Resolved IPv4 Address: " .
+            highlightText($ipv4, $highlightOrg) .
+            " (" .
+            $countryNameIPv4 .
+            ")</p>";
 
-     if ($ipv6) {
-    $countryInfoIPv6 = getCountryInfo($ipv6);
-    $countryNameIPv6 = $countryInfoIPv6['countryName'];
-    echo "<p>Resolved IPv6 Address: " . highlightText($ipv6, $highlightOrg) . " (" . $countryNameIPv6 . ")</p>";
+        if ($ipv6) {
+            $countryInfoIPv6 = getCountryInfo($ipv6);
+            $countryNameIPv6 = $countryInfoIPv6["countryName"];
+            echo "<p>Resolved IPv6 Address: " .
+                highlightText($ipv6, $highlightOrg) .
+                " (" .
+                $countryNameIPv6 .
+                ")</p>";
 
-    $ipv6WithoutWww = getIPv6($domain);
-    $ipv6WithWww = getIPv6("www.$domain");
+            $ipv6WithoutWww = getIPv6($domain);
+            $ipv6WithWww = getIPv6("www.$domain");
 
-    if ($ipv6WithoutWww !== null && $ipv6WithWww !== null && $ipv6WithoutWww !== $ipv6WithWww) {
-        echo "<p>www and non-www have different IPv6 addresses:</p>";
-        echo "<p>non-www: " . highlightText($ipv6WithoutWww, $highlightOrg) . "</p>";
-        echo "<p>www: " . highlightText($ipv6WithWww, $highlightOrg) . "</p>";
-    } elseif ($ipv6WithoutWww !== null && $ipv6WithWww !== null && $ipv6WithoutWww === $ipv6WithWww) {
-        echo "<p>Both www and non-www have the same IPv6 address: " . highlightText($ipv6WithoutWww, $highlightOrg) . "</p>";
-    } else {
-        echo "<p>IPv6 address for www variant not available or not matching</p>";
-    }
-} else {
-    echo "<p>IPv6 address not available</p>";
-}
-
-      
+            if (
+                $ipv6WithoutWww !== null &&
+                $ipv6WithWww !== null &&
+                $ipv6WithoutWww !== $ipv6WithWww
+            ) {
+                echo "<p>www and non-www have different IPv6 addresses:</p>";
+                echo "<p>non-www: " .
+                    highlightText($ipv6WithoutWww, $highlightOrg) .
+                    "</p>";
+                echo "<p>www: " .
+                    highlightText($ipv6WithWww, $highlightOrg) .
+                    "</p>";
+            } elseif (
+                $ipv6WithoutWww !== null &&
+                $ipv6WithWww !== null &&
+                $ipv6WithoutWww === $ipv6WithWww
+            ) {
+                echo "<p>Both www and non-www have the same IPv6 address: " .
+                    highlightText($ipv6WithoutWww, $highlightOrg) .
+                    "</p>";
+            } else {
+                echo "<p>IPv6 address for www variant not available or not matching</p>";
+            }
+        } else {
+            echo "<p>IPv6 address not available</p>";
+        }
 
         // Resolve IP to hostname
         $hostnames = gethostbyaddr($ipv4);
         if ($hostnames !== false) {
-        $hostname = is_array($hostnames) ? reset($hostnames) : $hostnames;
-           echo "<p>Resolved Hostname: " . highlightText($hostname, $highlightOrg) . "</p>";
+            $hostname = is_array($hostnames) ? reset($hostnames) : $hostnames;
+            echo "<p>Resolved Hostname: " .
+                highlightText($hostname, $highlightOrg) .
+                "</p>";
         } else {
-           echo "<p>Resolved Hostname not available</p>";
+            echo "<p>Resolved Hostname not available</p>";
         }
 
+        // Check SSL certificate validity
+        $context = stream_context_create([
+            "ssl" => ["capture_peer_cert" => true],
+        ]);
+        $socket = stream_socket_client(
+            "ssl://$domain:443",
+            $errno,
+            $errstr,
+            30,
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
 
-	// Check SSL certificate validity
-$context = stream_context_create(["ssl" => ["capture_peer_cert" => true]]);
-$socket = stream_socket_client("ssl://$domain:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
-
-if (!$socket) {
-    echo "<p class='expired'>Error: Failed to connect to $domain: $errstr ($errno).</p>";
-} else {
-    $sslInfo = stream_context_get_params($socket);
-    $sslCertificate = openssl_x509_parse($sslInfo["options"]["ssl"]["peer_certificate"]);
-
-    if (!$sslCertificate) {
-        echo "<p class='expired'>Error: Failed to retrieve SSL certificate information for $domain.</p>";
-    } else {
-        $validFrom = $sslCertificate['validFrom_time_t'];
-        $validTo = $sslCertificate['validTo_time_t'];
-
-        $daysUntilExpiration = ceil(($validTo - time()) / (60 * 60 * 24));
-
-        echo "<h2>SSL Certificate Information for $domain:</h2>";
-        echo "<ul>";
-
-        if ($daysUntilExpiration <= 14) {
-            echo "<li class='expired'><strong>Days Until Expiration:</strong> $daysUntilExpiration days</li>";
+        if (!$socket) {
+            echo "<p class='expired'>Error: Failed to connect to $domain: $errstr ($errno).</p>";
         } else {
-            echo "<li><strong>Days Until Expiration:</strong> $daysUntilExpiration days</li>";
+            $sslInfo = stream_context_get_params($socket);
+            $sslCertificate = openssl_x509_parse(
+                $sslInfo["options"]["ssl"]["peer_certificate"]
+            );
+
+            if (!$sslCertificate) {
+                echo "<p class='expired'>Error: Failed to retrieve SSL certificate information for $domain.</p>";
+            } else {
+                $validFrom = $sslCertificate["validFrom_time_t"];
+                $validTo = $sslCertificate["validTo_time_t"];
+
+                $daysUntilExpiration = ceil(
+                    ($validTo - time()) / (60 * 60 * 24)
+                );
+
+                echo "<h2>SSL Certificate Information for $domain:</h2>";
+                echo "<ul>";
+
+                if ($daysUntilExpiration <= 14) {
+                    echo "<li class='expired'><strong>Days Until Expiration:</strong> $daysUntilExpiration days</li>";
+                } else {
+                    echo "<li><strong>Days Until Expiration:</strong> $daysUntilExpiration days</li>";
+                }
+
+                echo "<li><strong>Valid From:</strong> " .
+                    date("Y-m-d H:i:s", $validFrom) .
+                    "</li>";
+                echo "<li><strong>Valid Until:</strong> " .
+                    date("Y-m-d H:i:s", $validTo) .
+                    "</li>";
+
+                echo "</ul>";
+            }
+
+            fclose($socket);
         }
-
-        echo "<li><strong>Valid From:</strong> " . date("Y-m-d H:i:s", $validFrom) . "</li>";
-        echo "<li><strong>Valid Until:</strong> " . date("Y-m-d H:i:s", $validTo) . "</li>";
-
-        echo "</ul>";
-    }
-
-    fclose($socket);
-}
-
-
-
 
         // Query MX records for the domain using Net_DNS2
-        require '/usr/local/php81/lib/php/Net/DNS2.php'; // Include the Net_DNS2 library
+        require "/usr/local/php81/lib/php/Net/DNS2.php"; // Include the Net_DNS2 library
         $resolver = new Net_DNS2_Resolver();
-        $mxResponse = $resolver->query($domain, 'MX');
+        $mxResponse = $resolver->query($domain, "MX");
 
         if ($mxResponse) {
             echo "<h2>Mail Servers (MX) for $domain:</h2>";
@@ -224,7 +261,7 @@ if (!$socket) {
         }
 
         // Query NS records for the domain using Net_DNS2
-        $nsResponse = $resolver->query($domain, 'NS');
+        $nsResponse = $resolver->query($domain, "NS");
 
         if ($nsResponse) {
             echo "<h2>Name Servers (NS) for $domain:</h2>";
@@ -244,8 +281,11 @@ if (!$socket) {
             echo "<h2>TXT Records (SPF) for $domain:</h2>";
             echo "<ul>";
             foreach ($txtRecords as $record) {
-                if (isset($record['txt']) && strpos($record['txt'], 'v=spf1') === 0) {
-                    $txt = highlightText($record['txt'], $highlightOrg);
+                if (
+                    isset($record["txt"]) &&
+                    strpos($record["txt"], "v=spf1") === 0
+                ) {
+                    $txt = highlightText($record["txt"], $highlightOrg);
                     echo "<li><strong>TXT Record (SPF):</strong> $txt</li>";
                 }
             }
@@ -255,17 +295,20 @@ if (!$socket) {
         }
         $dmarcRecords = dns_get_record("_dmarc." . $domain, DNS_TXT);
         if ($dmarcRecords) {
-        echo "<h2>DMARC Record for $domain:</h2>";
-        echo "<ul>";
-        foreach ($dmarcRecords as $record) {
-                if (isset($record['txt']) && strpos($record['txt'], 'v=DMARC1') === 0) {
-                $dmarcTxt = highlightText($record['txt'], $highlightOrg);
-                echo "<li><strong>DMARC Record:</strong> $dmarcTxt</li>";
+            echo "<h2>DMARC Record for $domain:</h2>";
+            echo "<ul>";
+            foreach ($dmarcRecords as $record) {
+                if (
+                    isset($record["txt"]) &&
+                    strpos($record["txt"], "v=DMARC1") === 0
+                ) {
+                    $dmarcTxt = highlightText($record["txt"], $highlightOrg);
+                    echo "<li><strong>DMARC Record:</strong> $dmarcTxt</li>";
                 }
-        }
-        echo "</ul>";
-        }       else {
-        echo "<p>DMARC record information not available/set.</p>";
+            }
+            echo "</ul>";
+        } else {
+            echo "<p>DMARC record information not available/set.</p>";
         }
     }
 }
@@ -274,4 +317,3 @@ if (!$socket) {
 
 </body>
 </html>
-
