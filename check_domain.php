@@ -166,6 +166,45 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         }
 
 
+	// Check SSL certificate validity
+$context = stream_context_create(["ssl" => ["capture_peer_cert" => true]]);
+$socket = stream_socket_client("ssl://$domain:443", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
+
+if (!$socket) {
+    echo "<p class='expired'>Error: Failed to connect to $domain: $errstr ($errno).</p>";
+} else {
+    $sslInfo = stream_context_get_params($socket);
+    $sslCertificate = openssl_x509_parse($sslInfo["options"]["ssl"]["peer_certificate"]);
+
+    if (!$sslCertificate) {
+        echo "<p class='expired'>Error: Failed to retrieve SSL certificate information for $domain.</p>";
+    } else {
+        $validFrom = $sslCertificate['validFrom_time_t'];
+        $validTo = $sslCertificate['validTo_time_t'];
+
+        $daysUntilExpiration = ceil(($validTo - time()) / (60 * 60 * 24));
+
+        echo "<h2>SSL Certificate Information for $domain:</h2>";
+        echo "<ul>";
+
+        if ($daysUntilExpiration <= 14) {
+            echo "<li class='expired'><strong>Days Until Expiration:</strong> $daysUntilExpiration days</li>";
+        } else {
+            echo "<li><strong>Days Until Expiration:</strong> $daysUntilExpiration days</li>";
+        }
+
+        echo "<li><strong>Valid From:</strong> " . date("Y-m-d H:i:s", $validFrom) . "</li>";
+        echo "<li><strong>Valid Until:</strong> " . date("Y-m-d H:i:s", $validTo) . "</li>";
+
+        echo "</ul>";
+    }
+
+    fclose($socket);
+}
+
+
+
+
         // Query MX records for the domain using Net_DNS2
         require '/usr/local/php81/lib/php/Net/DNS2.php'; // Include the Net_DNS2 library
         $resolver = new Net_DNS2_Resolver();
