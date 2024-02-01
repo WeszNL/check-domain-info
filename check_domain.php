@@ -1,3 +1,17 @@
+<?php
+/**
+ * Domain Information Tool
+ *
+ * This script offers insights into a domain, covering details such as IP addresses, SSL certificate specifics,
+ * mail server configurations, name server records, TXT/DMARC entries, and IP-to-country mapping functionality.
+ *
+ * @author Wesley van Rossum
+ * @copyright (c) 2024 Sernate Webservices
+ * @license MIT License
+ * @version 1.0.0
+ */
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
