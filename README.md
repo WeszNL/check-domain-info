@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a PHP script for retrieving various information about a domain, including IP addresses, SSL certificate details, mail servers, SPF and DMARC. Mostly for personal use.
+This is a PHP script for retrieving various information about a domain, including IP addresses, SSL certificate validity details, mail servers, SPF and DMARC. Mostly for personal use.
 
 ## Requirements
 
